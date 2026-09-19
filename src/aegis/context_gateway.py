@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from html.parser import HTMLParser
 from urllib.parse import urlparse
 
+from .dlp import DLPGuard
 from .models import ContextEnvelope, ContextSegment, DataLabel, Finding, TrustLabel
 
 
@@ -25,8 +26,6 @@ EXFILTRATION_PATTERN = re.compile(
     r"\b(?:secret|token|credential|history|customer|private|system prompt|data)\b",
     re.I | re.S,
 )
-SECRET_PATTERN = re.compile(r"\b(?:sk|api|token)[-_][A-Za-z0-9_-]{8,}\b", re.I)
-EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.I)
 BASE64_PATTERN = re.compile(r"\b[A-Za-z0-9+/]{24,}={0,2}\b")
 VOID_TAGS = frozenset({"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"})
 
@@ -108,6 +107,9 @@ class _CaptureParser(HTMLParser):
 class ContextGateway:
     """Turn an HTML artifact into a provenance-aware context envelope."""
 
+    def __init__(self) -> None:
+        self.dlp = DLPGuard()
+
     def analyze_html(self, *, source_id: str, url: str, html: str) -> ContextEnvelope:
         self._validate_url(url)
         parser = _CaptureParser()
@@ -125,10 +127,11 @@ class ContextGateway:
             if not normalized:
                 continue
 
-            if SECRET_PATTERN.search(normalized):
-                data_labels.add(DataLabel.SECRET)
-            if EMAIL_PATTERN.search(normalized):
-                data_labels.add(DataLabel.PII)
+            dlp_result = self.dlp.scan_text(original)
+            data_labels.update(dlp_result.labels)
+            if dlp_result.labels != frozenset({DataLabel.PUBLIC}):
+                data_labels.discard(DataLabel.PUBLIC)
+            safe_text = dlp_result.redacted
 
             decoded = self._decode_base64_probe(normalized)
             analyzed_text = f"{normalized}\n{decoded}" if decoded else normalized
@@ -141,11 +144,13 @@ class ContextGateway:
             segment_transformations = tuple((*raw.transformations, *transformations))
             if decoded:
                 segment_transformations = (*segment_transformations, "base64-probe")
+            if dlp_result.match_count:
+                segment_transformations = (*segment_transformations, "dlp-redacted")
 
             if suspicious:
                 segment = ContextSegment(
                     segment_id,
-                    original,
+                    safe_text,
                     TrustLabel.SUSPICIOUS_EXTERNAL,
                     raw.location,
                     source_id,
@@ -161,7 +166,7 @@ class ContextGateway:
                             "high",
                             0.95,
                             raw.location,
-                            original,
+                            safe_text,
                         )
                     )
                     risk_score += 45
@@ -174,7 +179,7 @@ class ContextGateway:
                             "high",
                             0.88,
                             raw.location,
-                            original,
+                            safe_text,
                         )
                     )
                     risk_score += 35
@@ -187,7 +192,7 @@ class ContextGateway:
                             "critical",
                             0.96,
                             raw.location,
-                            original,
+                            safe_text,
                         )
                     )
                     risk_score += 45
@@ -195,7 +200,7 @@ class ContextGateway:
                 evidence.append(
                     ContextSegment(
                         segment_id,
-                        original,
+                        safe_text,
                         TrustLabel.EXTERNAL_EVIDENCE,
                         raw.location,
                         source_id,
@@ -212,7 +217,7 @@ class ContextGateway:
                         "medium",
                         0.85,
                         raw.location,
-                        original,
+                        safe_text,
                     )
                 )
                 risk_score += 20

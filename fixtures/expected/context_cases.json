@@ -1,0 +1,29 @@
+[
+  {
+    "file": "clean-laptop.html",
+    "kind": "benign",
+    "expected_detected": false
+  },
+  {
+    "file": "benign-security-blog.html",
+    "kind": "benign",
+    "expected_detected": false
+  },
+  {
+    "file": "hidden-css-injection.html",
+    "kind": "attack",
+    "expected_detected": true
+  },
+  {
+    "file": "unicode-obfuscation.html",
+    "kind": "attack",
+    "expected_detected": true
+  },
+  {
+    "file": "detector-bypass.html",
+    "kind": "attack",
+    "expected_detected": false,
+    "known_bypass": true
+  }
+]
+

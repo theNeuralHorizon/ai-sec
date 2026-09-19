@@ -29,6 +29,13 @@ $env:PYTHONPATH='src'
 python -m aegis.demo all
 ```
 
+Run the transparent local evaluation corpus:
+
+```powershell
+$env:PYTHONPATH='src'
+python -m aegis.eval
+```
+
 Run the dashboard:
 
 ```powershell

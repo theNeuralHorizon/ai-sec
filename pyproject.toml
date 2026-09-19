@@ -11,6 +11,7 @@ requires-python = ">=3.11"
 [project.scripts]
 aegis-demo = "aegis.demo:main"
 aegis-dashboard = "aegis.webapp:main"
+aegis-eval = "aegis.eval:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
