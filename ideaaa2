@@ -1,0 +1,51 @@
+You already have two strong halves. Manas's provenance argument is the right architecture, and Atharva's deception idea is the right theatre. Finance is what turns either one from "another MCP guardrail" into something MCP-Scan structurally cannot do.
+
+## The reframe
+
+Generic agent security has to guess whether a tool call is malicious, because it only sees text. In index and portfolio operations, a tampered action produces an artifact that violates arithmetic. Weights are a deterministic function of price, shares, and free-float factor. Index level must stay continuous through a share-count change because the divisor absorbs it. Caps, buffers, and turnover limits are hard bounds. So you can detect a successful injection without ever reading the injected instruction, by checking whether the resulting artifact is reconcilable.
+
+That gives you the one line that survives the "MCP-Scan already exists" question:
+
+> Classifiers read the attack. We read the consequence. A prompt injection can be rephrased infinitely; it cannot make an index reconcile.
+
+The second thing finance gives you is a regulated, enumerable secret: pre-announcement index review data is price-sensitive, and front-running index reviews is a real, measurable market harm. So your exfiltration scenario has a dollar figure, not a hand-wave.
+
+## Lead idea: Agentic Information Barriers
+
+Banks spent forty years building information barriers between humans who hold material non-public information and humans who trade. Nobody has built one for agents. An agent with research-document access and an execution or export tool is the lethal trifecta collapsed into a single process.
+
+**Setup.** An agent handles an index review workflow with four MCP servers: constituent and market data, a document store (issuer filings, vendor corporate-action notices, broker notes), an optimizer runner, and an egress tool (email, file export, HTTP).
+
+**Attack.** The injection lives in a corporate-action notice, which is a genuinely plausible channel because those get machine-parsed. It does two things: sets a free-float factor for one ISIN to 1.0, and asks the agent to forward the pro-forma constituent file to a verification address.
+
+**Three enforcement layers, in order of cleverness:**
+
+1. **Flow control (Manas's layer).** Every document carries an origin tag. The pro-forma list carries an MNPI tag. Rule: MNPI-tainted bytes never reach an egress tool. Blocks the leak regardless of phrasing, encoding, or language.
+2. **Embargo-time taint.** Extend the tag with a release timestamp. Anything derived from review data inherits the embargo. The policy becomes "no embargoed derivative crosses a boundary before T", which is time-checkable and has no false-negative surface. This is the layer that maps directly to BMR and IOSCO benchmark-control obligations, so it also earns you track 04 overlap.
+3. **Reconciliation firewall (the differentiator).** The FIF write is checked against methodology invariants before it commits. Weight must equal price × shares × FIF over the divisor. Index level must be continuous across the change, which means the divisor adjustment has to reconcile to an authorized corporate action in the golden feed. It does not. The write is denied with a rule ID, not a confidence score.
+
+**Demo.** Split screen. Agent transcript on the left, provenance graph lighting up in the middle, methodology check panel on the right. Then a toggle: firewall off, the file leaves and the index level jumps; firewall on, blocked with the exact invariant that failed. Compute the impact live from your synthetic index and say it out loud. "One tampered field moved this index N basis points" is a number no other team will have on stage.
+
+**Invariants worth implementing** (all public methodology, cheap to code): weights sum to one, weight-to-market-cap consistency, divisor continuity through share changes, single-issuer and 10/40-style concentration caps, review buffer rules, one-way turnover bound.
+
+## Bolt-on: make MIRAGE consistent by construction
+
+Atharva's honeypot has one weakness, which is that an LLM inventing a company drifts and an agent that cross-checks will notice. Finance fixes this. Generate the decoy world from a simulator, not from freestyled text. Positions times prices equal NAV. Trades reconcile to positions. Weights reconcile to caps. The fake world is consistent because it is computed, and it is cheap because it is arithmetic.
+
+Then add the part that makes it worth building: **watermarked decoy identifiers**. Seed the synthetic universe with per-session fake ISINs and LEIs. If one ever shows up in a trade, a paste, or an inbound request, you know which session leaked and you have attribution. Structured financial identifiers are near-perfect canary tokens.
+
+Be ready for the obvious judge question: if you can tell the session is compromised, why divert instead of block? Two answers. Intelligence, because you learn the attacker's objective. And graceful degradation, because a false positive gets a working fake environment instead of a broken workflow.
+
+## Scope
+
+Spine is the flow control plus reconciliation firewall. Embargo taint is a small addition to the same tag structure. Honeypot is an optional mode behind a flag, and you cut it first if time runs out. Signed lineage records for every action fall out of the provenance layer almost free, and they are your audit artifact for the GRC angle.
+
+Build split: one person on the MCP proxy and taint propagation, one on the synthetic index plus invariant engine, one on the demo UI and the attack scenario. The index math is the part you can do faster than anyone else in that room, so own it.
+
+## Pitch lines to choose from
+
+- "An agent with research access and an export tool is an information barrier violation that nobody has written a policy for."
+- "We don't detect the injection. We detect that the index no longer reconciles."
+- "Every other team's demo ends with a blocked alert. Ours ends with a basis-point number."
+
+One practical caution. Keep everything on public methodology concepts and synthetic data you generate. No internal artifacts, no internal tooling, no real pre-announcement anything. The domain knowledge is the edge; the data does not need to be.
