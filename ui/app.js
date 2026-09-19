@@ -34,8 +34,9 @@ function toneOf(value) {
   ].includes(value)) return "crit";
   if ([
     "ALLOW", "NORMAL", "ALLOW_WITH_REDACTION", "COMPLETED",
-    "IN_SCOPE", "BOUND", "SIMULATED_RESULT", "PROPOSED",
+    "IN_SCOPE", "BOUND", "SIMULATED_RESULT", "PROPOSED", "GENERAL_INFORMATION", "EXECUTED",
   ].includes(value)) return "ok";
+  if (["NEEDS_CLARIFICATION", "HELD"].includes(value)) return "warn";
   if (value === null || value === undefined) return "";
   return "warn";
 }
@@ -347,7 +348,7 @@ function animateFlow(result) {
   for (const step of result.trace) byStage.set(step.stage, step);
 
   const stopped = ["REFUSED", "BLOCKED"].includes(result.final_status);
-  const held = result.final_status === "AWAITING_APPROVAL";
+  const held = ["AWAITING_APPROVAL", "NEEDS_CLARIFICATION"].includes(result.final_status);
   let delay = 0;
 
   for (const stage of FLOW_ORDER) {
@@ -374,6 +375,7 @@ function animateFlow(result) {
     $("live-status").textContent = {
       COMPLETED: "Allowed — the request was inside this person's authority",
       AWAITING_APPROVAL: "Held for human approval",
+      NEEDS_CLARIFICATION: "Clarification needed before company records are searched",
       BLOCKED: "Blocked by policy",
       REFUSED: "Refused before the model was given a tool",
     }[result.final_status] || result.final_status;
@@ -383,31 +385,47 @@ function animateFlow(result) {
 }
 
 function renderRunResult(result) {
-  const host = $("tool-result");
-  host.replaceChildren();
+  const answerHost = $("agent-response");
+  const auditHost = $("tool-audit");
+  const modelHost = $("model-plan");
+  answerHost.replaceChildren();
+  auditHost.replaceChildren();
+  modelHost.replaceChildren();
 
   const proposal = result.proposal;
-  $("result-note").textContent = proposal ? proposal.tool_name : "no tool proposed";
+  $("result-note").textContent = result.final_status.replaceAll("_", " ").toLowerCase();
+  $("tool-audit-note").textContent = `${(result.tool_audit || []).length} record${(result.tool_audit || []).length === 1 ? "" : "s"}`;
+  $("model-note").textContent = result.model_observation ? result.model_observation.mode : "not used";
 
   const scope = result.scope.assessment;
-  host.append(segmentNode(
+  answerHost.append(segmentNode(
     `SCOPE · ${scope.verdict}`, `confidence ${Math.round(scope.confidence * 100)}%`,
     scope.reason, (scope.signals || []).join("  ") || "",
     toneOf(scope.verdict) === "ok" ? "good" : "quarantined",
   ));
+  answerHost.append(segmentNode("AGENT RESPONSE", "grounded outcome", result.final_response || result.decision.reason, "This response is derived from the policy decision and synthetic tool result.", "good"));
 
   if (result.model_observation) {
-    host.append(segmentNode("MODEL PROPOSAL", result.model_observation.mode,
+    modelHost.append(segmentNode("UNTRUSTED PLAN", result.model_observation.mode,
       result.model_observation.plan, "the model only proposes; it authorises nothing", ""));
+  } else {
+    modelHost.append(segmentNode("MODEL", "not used", "The request was answered or stopped without calling the local model.", "No credentials or company records were exposed to the model.", ""));
+  }
+
+  for (const audit of result.tool_audit || []) {
+    const name = audit.tool || "no tool";
+    const metadata = [audit.action_class, ...(audit.data_labels || [])].filter(Boolean).join(" · ") || "no company data";
+    auditHost.append(segmentNode(`TOOL · ${audit.status}`, name, audit.detail, `${metadata} · ${audit.policy_decision} · ${audit.policy_rule_id}`, toneOf(audit.status) === "ok" ? "good" : audit.status === "NOT_USED" ? "" : "quarantined"));
+  }
+  if (!(result.tool_audit || []).length) {
+    auditHost.append(segmentNode("TOOL", "not recorded", "No tool activity was recorded for this run.", "", ""));
   }
 
   if (result.tool_result) {
-    host.append(segmentNode("TOOL RESULT", result.tool_result.tool, result.tool_result.summary, "", "good"));
+    answerHost.append(segmentNode("TOOL RESULT", result.tool_result.tool, result.tool_result.summary, "", "good"));
     for (const document_ of result.tool_result.documents || []) {
-      host.append(segmentNode(`DOC · ${document_.label}`, document_.path, document_.summary, "", ""));
+      answerHost.append(segmentNode(`DOC · ${document_.label}`, document_.path, document_.summary, "", ""));
     }
-  } else {
-    host.append(segmentNode("TOOL RESULT", "", "No tool was executed — nothing left this machine.", "", ""));
   }
 }
 

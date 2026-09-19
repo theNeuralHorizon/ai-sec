@@ -14,6 +14,8 @@ from enum import Enum
 
 class ScopeVerdict(str, Enum):
     IN_SCOPE = "IN_SCOPE"
+    GENERAL_INFORMATION = "GENERAL_INFORMATION"
+    NEEDS_CLARIFICATION = "NEEDS_CLARIFICATION"
     OUT_OF_SCOPE = "OUT_OF_SCOPE"
     SENSITIVE_EXFILTRATION = "SENSITIVE_EXFILTRATION"
     PROMPT_INJECTION = "PROMPT_INJECTION"
@@ -43,7 +45,16 @@ class LightweightScopeClassifier:
         r"\b(shipment|container|eta|delay|arrival|arrive|arrives|arrived|delivery|delivered|nf-\d{4})\b",
         re.I,
     )
-    _documents = re.compile(r"\b(file|document|playbook|contract|brief|policy|report|search|summari[sz])\b", re.I)
+    _documents = re.compile(r"\b(file|document|playbook|contract|brief|policy|report|search|summari[sz]\w*)\b", re.I)
+    _broad_operations = re.compile(
+        r"\b(current\s+)?(delivery|carrier|shipping|supply\s+chain|operations?)\s+(network|details?|overview|status)\b"
+        r"|\b(all|every)\s+(deliver(?:y|ies)|carriers|shipments|routes?)\b",
+        re.I,
+    )
+    _general_information = re.compile(
+        r"^\s*(what can you (?:do|help with)|help|how does aegis work|explain aegis|what tools)\b",
+        re.I,
+    )
     _notify = re.compile(r"\b(notify|update|tell)\b.{0,50}\b(customer|client)\b|\bcustomer\b.{0,50}\b(notify|update)\b", re.I)
 
     def assess(self, prompt: str) -> ScopeAssessment:
@@ -56,6 +67,18 @@ class LightweightScopeClassifier:
             return ScopeAssessment(ScopeVerdict.SENSITIVE_EXFILTRATION, 0.96, "The request combines an external transfer verb with protected company data.", None, ("sensitive_egress",))
         if self._delete.search(normalized):
             return ScopeAssessment(ScopeVerdict.OUT_OF_SCOPE, 0.94, "Deleting company data is outside this read-and-notify demo mandate.", None, ("destructive_action",))
+        if self._broad_operations.search(normalized):
+            return ScopeAssessment(
+                ScopeVerdict.NEEDS_CLARIFICATION, 0.91,
+                "This is a broad operations request. Name a shipment reference, customer case, or approved document before company records are searched.",
+                None, ("broad_operational_request",),
+            )
+        if self._general_information.search(normalized):
+            return ScopeAssessment(
+                ScopeVerdict.GENERAL_INFORMATION, 0.94,
+                "General Aegis guidance can be answered without accessing company records.",
+                None, ("general_guidance",),
+            )
         if self._notify.search(normalized):
             return ScopeAssessment(ScopeVerdict.IN_SCOPE, 0.86, "Preparing a customer portal update is a permitted, approval-gated workflow.", "customer.notify", ("customer_update",))
         if self._shipment.search(normalized):
@@ -73,12 +96,14 @@ class MultiLayerScopeGuard:
 
     def assess(self, prompt: str) -> dict:
         lexical = self.classifier.assess(prompt)
+        uses_operational_tool = lexical.verdict is ScopeVerdict.IN_SCOPE
+        is_general_guidance = lexical.verdict is ScopeVerdict.GENERAL_INFORMATION
         return {
             "layers": [
                 {"name": "input normalization", "result": "PASS", "detail": "Whitespace normalized; prompt retained for audit."},
                 {"name": "scope classifier", "result": lexical.verdict.value, "detail": lexical.reason},
-                {"name": "model isolation", "result": "PENDING" if lexical.verdict is ScopeVerdict.IN_SCOPE else "SKIPPED", "detail": "The model receives only approved task context and cannot call tools directly."},
-                {"name": "deterministic policy", "result": "PENDING" if lexical.verdict is ScopeVerdict.IN_SCOPE else "BLOCK", "detail": "Every proposed tool call is independently authorized."},
+                {"name": "model isolation", "result": "PENDING" if uses_operational_tool else "SKIPPED", "detail": "The model receives only approved task context and cannot call tools directly."},
+                {"name": "deterministic policy", "result": "PENDING" if uses_operational_tool else "ALLOW" if is_general_guidance else "BLOCK", "detail": "Every proposed tool call is independently authorized."},
                 {"name": "agent EDR", "result": "ARMED", "detail": "Correlates denial, tool drift, and containment signals."},
             ],
             "assessment": lexical.to_dict(),

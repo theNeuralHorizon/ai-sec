@@ -44,11 +44,45 @@ class SupplyChainRuntime:
             {"stage": "scope", "outcome": assessment["verdict"], "detail": assessment["reason"]},
         ]
         verdict = ScopeVerdict(assessment["verdict"])
+        if verdict is ScopeVerdict.GENERAL_INFORMATION:
+            decision = PolicyDecision(
+                Decision.ALLOW, "POL-GENERAL-001",
+                "This general question does not need company records or an operational tool.", "aegis-policy-0.2",
+            )
+            trace.extend((
+                {"stage": "model", "outcome": "SKIPPED", "detail": "General guidance is deterministic and does not require the model."},
+                {"stage": "policy", "outcome": decision.decision.value, "detail": f"{decision.rule_id}: {decision.reason}"},
+                {"stage": "tool", "outcome": "NOT_USED", "detail": "No company tool was needed."},
+            ))
+            return self._result(
+                run_id, user, prompt, scope, trace, None, decision, None, "COMPLETED", [],
+                final_response=(
+                    "I can search role-authorized company documents, look up a named Northstar shipment, "
+                    "or prepare a portal-only customer update. I will show the proposed tool, policy decision, "
+                    "and simulated result for every operational request."
+                ),
+                tool_audit=[self._tool_audit(None, "NOT_USED", decision, "General guidance answered without accessing company data.")],
+            )
+        if verdict is ScopeVerdict.NEEDS_CLARIFICATION:
+            decision = PolicyDecision(Decision.NEEDS_CLARIFICATION, "POL-SCOPE-003", assessment["reason"], "aegis-policy-0.2")
+            trace.extend((
+                {"stage": "policy", "outcome": decision.decision.value, "detail": f"{decision.rule_id}: {decision.reason}"},
+                {"stage": "tool", "outcome": "NOT_USED", "detail": "No search was run until the request is narrowed."},
+            ))
+            return self._result(
+                run_id, user, prompt, scope, trace, None, decision, None, "NEEDS_CLARIFICATION", [],
+                final_response="Please provide a shipment reference (for example, NF-2048), a customer case, or the title of an approved document.",
+                tool_audit=[self._tool_audit(None, "NOT_USED", decision, "Broad request; no company records were searched.")],
+            )
         if verdict is not ScopeVerdict.IN_SCOPE:
             rule_id = "POL-SCOPE-002" if verdict is ScopeVerdict.SENSITIVE_EXFILTRATION else "POL-SCOPE-001"
             decision = PolicyDecision(Decision.DENY, rule_id, assessment["reason"], "aegis-policy-0.2")
             trace.append({"stage": "policy", "outcome": decision.decision.value, "detail": f"{decision.rule_id}: {decision.reason}"})
-            return self._result(run_id, user, prompt, scope, trace, None, decision, None, "REFUSED", [])
+            return self._result(
+                run_id, user, prompt, scope, trace, None, decision, None, "REFUSED", [],
+                final_response=self._refusal_response(verdict),
+                tool_audit=[self._tool_audit(None, "NOT_USED", decision, "The request was refused before the model or a tool was reached.")],
+            )
 
         tool_name = assessment["intended_tool"]
         assert tool_name is not None
@@ -68,7 +102,13 @@ class SupplyChainRuntime:
         elif decision.decision is Decision.REQUIRE_HUMAN_APPROVAL:
             final = "AWAITING_APPROVAL"
             trace.append({"stage": "tool", "outcome": "HELD", "detail": "No message is sent; an authorized human must approve this synthetic portal update."})
-        result = self._result(run_id, user, prompt, scope, trace, proposed, decision, tool_result, final, _jsonable(run.edr.events), _jsonable(run.edr.alerts), run.edr.state.value)
+        audit_status = "EXECUTED" if decision.decision is Decision.ALLOW else ("HELD" if decision.decision is Decision.REQUIRE_HUMAN_APPROVAL else "BLOCKED")
+        result = self._result(
+            run_id, user, prompt, scope, trace, proposed, decision, tool_result, final,
+            _jsonable(run.edr.events), _jsonable(run.edr.alerts), run.edr.state.value,
+            final_response=self._final_response(tool_result, decision, final),
+            tool_audit=[self._tool_audit(proposed, audit_status, decision, self._audit_detail(tool_result, final))],
+        )
         result["model_observation"] = observation.to_dict()
         return result
 
@@ -112,9 +152,13 @@ class SupplyChainRuntime:
         if request.tool_name == "company.files.search":
             terms = set(re.findall(r"[a-z]{4,}", request.arguments["query"].lower()))
             hits = [document for document in visible_files_for(user.user_id) if terms & set(re.findall(r"[a-z]{4,}", f"{document.title} {document.summary}".lower()))]
-            if not hits:
-                hits = list(visible_files_for(user.user_id))[:3]
             documents = [{"title": doc.title, "path": doc.path, "label": doc.label.value, "summary": doc.summary} for doc in hits[:3]]
+            if not documents:
+                return {
+                    "tool": request.tool_name,
+                    "summary": "No role-authorized document matched that request. Provide a document title or a more specific operational question.",
+                    "documents": [],
+                }
             return {"tool": request.tool_name, "summary": f"Found {len(documents)} role-authorized document(s).", "documents": documents}
         if request.tool_name == "customer.notify":
             reference = request.arguments["reference"]
@@ -126,11 +170,48 @@ class SupplyChainRuntime:
         raise ValueError("Only approved synthetic tools may be invoked")
 
     @staticmethod
-    def _result(run_id, user, prompt, scope, trace, proposal, decision, tool_result, final, events, alerts=(), session_state="NORMAL") -> dict:
+    def _tool_audit(proposal: ToolRequest | None, status: str, decision: PolicyDecision, detail: str) -> dict:
+        return {
+            "tool": proposal.tool_name if proposal else None,
+            "action_class": proposal.action_class.value if proposal else None,
+            "status": status,
+            "policy_decision": decision.decision.value,
+            "policy_rule_id": decision.rule_id,
+            "data_labels": sorted(label.value for label in proposal.data_labels) if proposal else [],
+            "detail": detail,
+        }
+
+    @staticmethod
+    def _audit_detail(tool_result: dict | None, final: str) -> str:
+        if tool_result:
+            return tool_result["summary"]
+        if final == "AWAITING_APPROVAL":
+            return "Awaiting an authorized human approval; no outbound action was performed."
+        return "The proposed action did not execute."
+
+    @staticmethod
+    def _final_response(tool_result: dict | None, decision: PolicyDecision, final: str) -> str:
+        if tool_result:
+            return tool_result["summary"]
+        if final == "AWAITING_APPROVAL":
+            return "The portal update is prepared but held until an authorized approver confirms it."
+        return decision.reason
+
+    @staticmethod
+    def _refusal_response(verdict: ScopeVerdict) -> str:
+        if verdict is ScopeVerdict.SENSITIVE_EXFILTRATION:
+            return "I can’t transfer protected company data outside the approved workflow."
+        if verdict is ScopeVerdict.PROMPT_INJECTION:
+            return "I can’t change or reveal the system instructions."
+        return "I can help with approved document search, named shipment lookup, or a portal-only customer update."
+
+    @staticmethod
+    def _result(run_id, user, prompt, scope, trace, proposal, decision, tool_result, final, events, alerts=(), session_state="NORMAL", final_response="", tool_audit=()) -> dict:
         return _jsonable({
             "run_id": run_id, "company": "Northstar Freight (synthetic)", "model": MODEL_PROFILE,
             "user": asdict(user), "prompt": prompt, "scope": scope, "trace": trace,
             "proposal": proposal, "decision": decision, "tool_result": tool_result, "final_status": final,
+            "final_response": final_response, "tool_audit": tool_audit,
             "events": events, "alerts": alerts, "session_state": session_state,
             "safety_note": "All tool results and customer updates are synthetic. No external system is contacted.",
         })

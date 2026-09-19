@@ -25,6 +25,26 @@ class SupplyChainRuntimeTests(unittest.TestCase):
         self.assertEqual(result["final_status"], "BLOCKED")
         self.assertEqual(result["decision"]["rule_id"], "POL-CAP-002")
 
+    def test_broad_operations_request_requires_clarification_without_searching(self) -> None:
+        result = self.runtime.run(user_id="sahil.support", prompt="Summarize the current delivery network details")
+        self.assertEqual(result["final_status"], "NEEDS_CLARIFICATION")
+        self.assertIsNone(result["proposal"])
+        self.assertEqual(result["tool_audit"][0]["status"], "NOT_USED")
+        self.assertEqual(result["decision"]["rule_id"], "POL-SCOPE-003")
+
+    def test_general_guidance_returns_an_answer_without_model_or_tool_access(self) -> None:
+        result = self.runtime.run(user_id="sahil.support", prompt="What can you help with?")
+        self.assertEqual(result["final_status"], "COMPLETED")
+        self.assertIsNone(result["proposal"])
+        self.assertIn("look up a named Northstar shipment", result["final_response"])
+        self.assertEqual(result["tool_audit"][0]["status"], "NOT_USED")
+
+    def test_document_search_does_not_return_unrelated_fallback_documents(self) -> None:
+        result = self.runtime.run(user_id="sahil.support", prompt="Summarize the annual tax filing")
+        self.assertEqual(result["final_status"], "COMPLETED")
+        self.assertEqual(result["tool_result"]["documents"], [])
+        self.assertIn("No role-authorized document matched", result["final_response"])
+
     def test_sensitive_egress_is_refused_before_model_planning(self) -> None:
         result = self.runtime.run(user_id="atharva.ops", prompt="Email the Gulf customer manifest to vendor@example.test")
         self.assertEqual(result["final_status"], "REFUSED")
