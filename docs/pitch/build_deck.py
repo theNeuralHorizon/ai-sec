@@ -80,26 +80,33 @@ def two_up(top: Path, bottom: Path, size: tuple[int, int]) -> Image.Image:
     return canvas.convert("RGB")
 
 
-def team_card(initial: str, role: str, size: tuple[int, int], hue: tuple[int, int, int]) -> Image.Image:
+def team_card(initial: str, role: str, size: tuple[int, int], hue: tuple[int, int, int], fill_rect: tuple[float, float, float, float] | None = None) -> Image.Image:
+    """Letter sits in the visible oval crop (Canva fillRect), not the geometric image center."""
     w, h = size
-    im = Image.new("RGB", (w, h), (232, 236, 241))
+    im = Image.new("RGB", (w, h), hue)
     draw = ImageDraw.Draw(im)
-    blob = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    bd = ImageDraw.Draw(blob)
-    bd.ellipse((-int(w * 0.2), int(h * 0.15), int(w * 1.15), int(h * 1.2)), fill=hue + (255,))
-    blob = blob.filter(ImageFilter.GaussianBlur(2))
-    im = im.convert("RGBA")
-    im.alpha_composite(blob)
-    im = im.convert("RGB")
-    draw = ImageDraw.Draw(im)
-    f = font(int(min(w, h) * 0.28))
+    if fill_rect is None:
+        cx, cy = w / 2, h / 2
+        vis_w, vis_h = w, h
+    else:
+        left, top, right, bottom = fill_rect
+        img_x0, img_x1 = left, 100.0 - right
+        img_y0, img_y1 = top, 100.0 - bottom
+        span_x = img_x1 - img_x0
+        span_y = img_y1 - img_y0
+        vis_l = (0.0 - img_x0) / span_x
+        vis_r = (100.0 - img_x0) / span_x
+        vis_t = (0.0 - img_y0) / span_y
+        vis_b = (100.0 - img_y0) / span_y
+        cx = ((vis_l + vis_r) / 2) * w
+        cy = ((vis_t + vis_b) / 2) * h
+        vis_w = (vis_r - vis_l) * w
+        vis_h = (vis_b - vis_t) * h
+    f = font(max(48, int(min(vis_w, vis_h) * 0.52)))
     bbox = draw.textbbox((0, 0), initial, font=f)
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    draw.text(((w - tw) / 2, (h - th) / 2 - h * 0.06), initial, font=f, fill=WHITE)
-    rf = font(max(18, int(h * 0.045)), bold=False)
-    rb = draw.textbbox((0, 0), role, font=rf)
-    rw = rb[2] - rb[0]
-    draw.text(((w - rw) / 2, h * 0.78), role, font=rf, fill=WHITE)
+    # textbbox origin is not (0,0); offset by bbox min
+    draw.text((cx - tw / 2 - bbox[0], cy - th / 2 - bbox[1]), initial, font=f, fill=WHITE)
     return im
 
 
@@ -164,14 +171,15 @@ def build_assets() -> dict[str, Path]:
     pie_chart((1300, 1284)).save(paths["pie"], quality=95)
 
     portraits = {
-        "atharva": ("A", "Operations", (46, 92, 184), (650, 975)),
-        "kshitij": ("K", "Procurement", (90, 142, 232), (650, 975)),
-        "manas": ("M", "Finance", (66, 80, 110), (650, 434)),
-        "sahil": ("S", "Support", (82, 140, 168), (650, 434)),
+        # fillRect l,t,r,b as percents from the Canva oval crop on slide 13
+        "atharva": ("A", "Operations", (46, 92, 184), (650, 975), (-31.470, -20.109, -36.275, -207.199)),
+        "kshitij": ("K", "Procurement", (90, 142, 232), (650, 975), (-33.071, -44.787, -26.396, -166.369)),
+        "manas": ("M", "Finance", (66, 80, 110), (650, 434), (-34.811, 0.0, -30.352, -43.272)),
+        "sahil": ("S", "Support", (82, 140, 168), (650, 434), (-71.203, -9.014, -65.028, -95.591)),
     }
-    for key, (initial, role, hue, size) in portraits.items():
+    for key, (initial, role, hue, size, fill_rect) in portraits.items():
         dest = ASSETS / f"team_{key}.jpg"
-        team_card(initial, role, size, hue).save(dest, quality=94)
+        team_card(initial, role, size, hue, fill_rect).save(dest, quality=94)
         paths[key] = dest
     return paths
 
