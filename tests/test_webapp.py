@@ -24,7 +24,7 @@ class WebAppTests(unittest.TestCase):
             with urlopen(base, timeout=2) as response:
                 body = response.read()
             self.assertIn(b"Aegis", body)
-            self.assertIn(b"Context gateway", body)
+            self.assertIn(b"Northstar Freight", body)
         finally:
             server.shutdown()
             server.server_close()

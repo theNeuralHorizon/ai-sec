@@ -21,7 +21,7 @@ SENSITIVE_LABELS = frozenset({DataLabel.CONFIDENTIAL, DataLabel.PII, DataLabel.S
 class PolicyEngine:
     """Small, explicit policy engine with stable rule identifiers."""
 
-    version = "aegis-policy-0.1"
+    version = "aegis-policy-0.2"
 
     def evaluate_context(self, envelope: ContextEnvelope) -> PolicyDecision:
         if envelope.source_trust is TrustLabel.BLOCKED_EXTERNAL or envelope.risk_score >= 95:

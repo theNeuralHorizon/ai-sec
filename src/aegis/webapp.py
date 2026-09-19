@@ -9,7 +9,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+from .company import FILES, TOOLS, USERS
 from .demo import SCENARIOS, _jsonable
+from .runtime import MODEL_PROFILE, SupplyChainRuntime
+from .supply_eval import evaluate_supply_chain_demo
 
 
 PROJECT_ROOT = Path(__file__).parents[2]
@@ -47,11 +50,44 @@ class AegisHandler(BaseHTTPRequestHandler):
                 return
             self._send_json(payload)
             return
+        if path == "/api/company":
+            self._send_json({
+                "name": "Northstar Freight (synthetic)",
+                "model": MODEL_PROFILE,
+                "users": _jsonable(USERS),
+                "tools": _jsonable(TOOLS),
+                "files": _jsonable(FILES),
+            })
+            return
+        if path == "/api/benchmarks":
+            self._send_json(evaluate_supply_chain_demo())
+            return
         if path in STATIC_FILES:
             filename, content_type = STATIC_FILES[path]
             self._send_bytes((UI_ROOT / filename).read_bytes(), content_type)
             return
         self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+
+    def do_POST(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler API
+        if urlparse(self.path).path != "/api/run":
+            self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+            return
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if not 0 < length <= 8_192:
+                raise ValueError("Request body must be between 1 and 8192 bytes.")
+            payload = json.loads(self.rfile.read(length))
+            if not isinstance(payload, dict) or not isinstance(payload.get("prompt"), str):
+                raise ValueError("Expected a JSON object with a string prompt.")
+            result = SupplyChainRuntime().run(
+                user_id=str(payload.get("user_id", "")),
+                prompt=payload["prompt"].strip(),
+                approval_granted=payload.get("approval_granted") is True,
+            )
+        except (ValueError, json.JSONDecodeError) as error:
+            self._send_json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
+            return
+        self._send_json(result)
 
     def log_message(self, format: str, *args) -> None:
         return

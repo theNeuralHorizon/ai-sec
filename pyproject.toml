@@ -6,12 +6,16 @@ build-backend = "setuptools.build_meta"
 name = "aegis-agent-security"
 version = "0.1.0"
 description = "Hackathon prototype of the Aegis agent security control plane"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 
 [project.scripts]
 aegis-demo = "aegis.demo:main"
 aegis-dashboard = "aegis.webapp:main"
 aegis-eval = "aegis.eval:main"
+aegis-local-model = "aegis.local_gguf_server:main"
+
+[project.optional-dependencies]
+local-model = ["llama-cpp-python>=0.3.35"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
