@@ -45,6 +45,32 @@ def _load(name: str) -> str:
     return (FIXTURES / name).read_text(encoding="utf-8")
 
 
+def run_baseline() -> dict[str, Any]:
+    """Show the unsafe path without executing a real side effect."""
+    return {
+        "scenario": "baseline",
+        "protection_enabled": False,
+        "context": {
+            "risk_score": None,
+            "findings": [],
+            "evidence_count": None,
+            "quarantined_count": 0,
+            "decision": None,
+        },
+        "proposed_action": {
+            "tool_name": "email.send",
+            "destination": "attacker@example.test",
+            "arguments": {"body": "synthetic customer data"},
+        },
+        "action_decision": None,
+        "side_effect_executed": False,
+        "side_effect_would_execute": True,
+        "session_state": "UNMONITORED",
+        "alerts": [],
+        "events": [],
+    }
+
+
 def run_clean() -> dict[str, Any]:
     run = AegisRun("demo-clean", _mandate())
     envelope, context_decision = run.analyze_html(
@@ -104,6 +130,7 @@ def run_bypass() -> dict[str, Any]:
 def _result(name, envelope, context_decision, action, action_decision, run) -> dict[str, Any]:
     return {
         "scenario": name,
+        "protection_enabled": True,
         "context": {
             "risk_score": envelope.risk_score,
             "findings": envelope.findings,
@@ -114,13 +141,19 @@ def _result(name, envelope, context_decision, action, action_decision, run) -> d
         "proposed_action": action,
         "action_decision": action_decision,
         "side_effect_executed": False,
+        "side_effect_would_execute": False,
         "session_state": run.edr.state,
         "alerts": run.edr.alerts,
         "events": run.edr.events,
     }
 
 
-SCENARIOS = {"clean": run_clean, "caught": run_caught, "bypass": run_bypass}
+SCENARIOS = {
+    "baseline": run_baseline,
+    "clean": run_clean,
+    "caught": run_caught,
+    "bypass": run_bypass,
+}
 
 
 def main() -> None:
@@ -133,4 +166,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
