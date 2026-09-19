@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Aegis — Agent Security Control Plane</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="eyebrow">AGENT SECURITY CONTROL PLANE</div>
+        <h1>Aegis</h1>
+        <p class="lede">Inspect what enters. Control what executes. Contain what gets compromised.</p>
+      </header>
+
+      <section class="controls" aria-label="Demo controls">
+        <button data-scenario="baseline">1. Protection off</button>
+        <button data-scenario="caught">2. Gateway catches attack</button>
+        <button data-scenario="bypass">3. Detector bypass</button>
+        <button data-scenario="clean">Clean control</button>
+      </section>
+
+      <section id="status" class="status" aria-live="polite">Select a scenario to begin.</section>
+
+      <section class="grid" aria-label="Security decision trace">
+        <article>
+          <div class="step">01 · CONTEXT</div>
+          <h2>Secure Context Gateway</h2>
+          <dl id="context"></dl>
+        </article>
+        <article>
+          <div class="step">02 · ACTION</div>
+          <h2>Deterministic Policy</h2>
+          <dl id="policy"></dl>
+        </article>
+        <article>
+          <div class="step">03 · RESPONSE</div>
+          <h2>Agent EDR</h2>
+          <dl id="edr"></dl>
+        </article>
+      </section>
+
+      <section class="timeline">
+        <div class="step">CAUSAL TRACE</div>
+        <ol id="timeline"><li>No events yet.</li></ol>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
+

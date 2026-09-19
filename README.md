@@ -2,20 +2,68 @@
 
 Aegis is an agent security control plane that treats external content as untrusted input, protects AI agents from indirect prompt injection, and blocks unsafe tool actions.
 
+> Inspect what enters. Control what executes. Contain what gets compromised.
 
-model routing gateway
-actual agents doing something - with tools and actions in a synthetic company scenario with database users with different access control levels
-show a baseline case of failure in the dashboard, which happens without aegis, and then success case with aegis, let the dashboard have the option to select to try the system as different users defined above to let judges test the solution themselves
-fancy dashboards showing agent tool calling changing stuff actions visualising it etc, and giving the judges the option to enable diable all the controls we have in place through the dashboard
-have a donecheck like classifier that checks the scope of the agent and whether or not the action being demanded by the user is possible for the agent or not
-scope of policy eengine define rules according to ocmpany and scneario we make the rubric itself
-end to end working pipeline scope 
-how to make it pluggable and model agnostic
+## Working prototype
+
+The current vertical slice is fully local and dependency-free. It includes:
+
+- a provenance-aware HTML Context Gateway;
+- deterministic context and tool policy with stable rule IDs;
+- task-scoped capabilities and data labels;
+- Agent EDR session correlation and containment;
+- clean, detected-attack, and deliberate detector-bypass scenarios; and
+- a judge-facing local dashboard with no real external side effects.
+
+Run the tests from PowerShell:
+
+```powershell
+$env:PYTHONPATH='src'
+python -m unittest discover -s tests -v
+```
+
+Run the terminal demonstration:
+
+```powershell
+$env:PYTHONPATH='src'
+python -m aegis.demo all
+```
+
+Run the transparent local evaluation corpus:
+
+```powershell
+$env:PYTHONPATH='src'
+python -m aegis.eval
+```
+
+Run the dashboard:
+
+```powershell
+$env:PYTHONPATH='src'
+python -m aegis.webapp
+```
+
+Then open `http://127.0.0.1:8080`.
+
+All email, data-access, and destructive actions in the prototype are synthetic proposals. The demo never contacts an external system.
+
+## What the three runs show
+
+| Run | Gateway | Outcome | Rule |
+| --- | --- | --- | --- |
+| clean | no findings | task completes | `POL-ALLOW-000` |
+| caught | hidden instruction quarantined | outbound action denied | `POL-FLOW-001` |
+| bypass | nothing detected | outbound action denied anyway | `POL-DATA-001` |
+
+The bypass run is the point: the detector misses the page, and the action is still stopped
+at the policy boundary. Detection on the local corpus is 0.75 by design, because the
+deliberate bypass counts as an undetected attack; action blocking is 1.0.
 
 ## Documents
 
 - [Aegis Hackathon Prototype Design](AEGIS_HACKATHON_PROTOTYPE_DESIGN.md)
 - [Aegis Agent Security Control Plane](AEGIS_EDR_IDEA.md)
+- [Backlog](BACKLOG.md)
 
 ## Core idea
 
