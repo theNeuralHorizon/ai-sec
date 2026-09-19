@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "aegis-agent-security"
 version = "0.1.0"
 description = "Hackathon prototype of the Aegis agent security control plane"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 
 [project.scripts]
 aegis-demo = "aegis.demo:main"

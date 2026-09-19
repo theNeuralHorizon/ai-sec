@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
-from enum import StrEnum
+from datetime import datetime, timezone
+from enum import Enum
 from typing import Any
 
 
-class TrustLabel(StrEnum):
+class TrustLabel(str, Enum):
     SYSTEM_POLICY = "SYSTEM_POLICY"
     USER_REQUEST = "USER_REQUEST"
     TRUSTED_INTERNAL = "TRUSTED_INTERNAL"
@@ -17,7 +17,7 @@ class TrustLabel(StrEnum):
     BLOCKED_EXTERNAL = "BLOCKED_EXTERNAL"
 
 
-class DataLabel(StrEnum):
+class DataLabel(str, Enum):
     PUBLIC = "public"
     INTERNAL = "internal"
     CONFIDENTIAL = "confidential"
@@ -25,14 +25,14 @@ class DataLabel(StrEnum):
     SECRET = "secret"
 
 
-class ActionClass(StrEnum):
+class ActionClass(str, Enum):
     READ = "read"
     WRITE = "write"
     OUTBOUND = "outbound"
     DESTRUCTIVE = "destructive"
 
 
-class Decision(StrEnum):
+class Decision(str, Enum):
     ALLOW = "ALLOW"
     ALLOW_WITH_REDACTION = "ALLOW_WITH_REDACTION"
     ALLOW_READ_ONLY = "ALLOW_READ_ONLY"
@@ -41,7 +41,7 @@ class Decision(StrEnum):
     DENY = "DENY"
 
 
-class SessionState(StrEnum):
+class SessionState(str, Enum):
     NORMAL = "NORMAL"
     SUSPICIOUS = "SUSPICIOUS"
     CONTAINED = "CONTAINED"
@@ -117,7 +117,7 @@ class PolicyDecision:
     decision: Decision
     rule_id: str
     reason: str
-    policy_version: str = "aegis-policy-0.1"
+    policy_version: str = "aegis-policy-0.2"
 
 
 @dataclass(frozen=True, slots=True)
@@ -125,7 +125,7 @@ class SecurityEvent:
     run_id: str
     event_type: str
     outcome: str
-    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     source_id: str | None = None
     tool_name: str | None = None
     destination: str | None = None
