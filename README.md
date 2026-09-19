@@ -18,11 +18,11 @@ The exact abliterated checkpoint selected initially has no Q4 GGUF release, so t
 
 ### Start the live Q4 model route
 
-After the Q4 file is downloaded, open two PowerShell terminals in the repository root:
+After the Q4 file is downloaded, use the prebuilt CUDA-enabled `llama-server.exe` from the `llama.cpp` release in one PowerShell terminal:
 
 ```powershell
-$env:PYTHONPATH='src'
-python -m aegis.local_gguf_server --model 'C:\Users\athar\AegisLocalModels\phi35-mini-q4\Phi-3.5-mini-instruct-Q4_K_M.gguf'
+Expand-Archive 'C:\Users\athar\AegisLocalModels\runtime\llama-b11050-bin-win-cuda-12.4-x64.zip' 'C:\Users\athar\AegisLocalModels\runtime\llama-cpp' -Force
+& 'C:\Users\athar\AegisLocalModels\runtime\llama-cpp\llama-server.exe' -m 'C:\Users\athar\AegisLocalModels\phi35-mini-q4\Phi-3.5-mini-instruct-Q4_K_M.gguf' --host 127.0.0.1 --port 8081 -ngl 99 --ctx-size 2048
 ```
 
 ```powershell
@@ -32,7 +32,7 @@ $env:AEGIS_LOCAL_MODEL_NAME='bartowski/Phi-3.5-mini-instruct-GGUF:Q4_K_M'
 python -m aegis.webapp
 ```
 
-The UI remains available while the model downloads; it switches from deterministic fallback to `local model endpoint` in the “Model proposal” card when this route is running.
+The UI remains available while the model downloads; it switches from deterministic fallback to `local model endpoint` in the “Model proposal” card when this route is running. The included `aegis.local_gguf_server` remains a CPU-only Python fallback for users who install `llama-cpp-python`.
 
 ## Run it
 
