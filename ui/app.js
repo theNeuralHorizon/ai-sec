@@ -55,7 +55,7 @@ function render(data) {
     row("Response", data.alerts.at(-1)?.response ?? "observe");
 
   const events = data.events.map((event) =>
-    `<li><span>${escapeHtml(event.event_type)}</span><strong>${escapeHtml(event.outcome)}</strong><code>${escapeHtml(event.policy_rule_id)}</code></li>`
+    `<li><span>${escapeHtml(event.event_type)}</span><strong>${escapeHtml(event.outcome)}</strong><code>${escapeHtml(event.policy_rule_id ?? event.details?.from ?? "—")}</code></li>`
   );
   if (data.side_effect_would_execute) {
     events.push("<li><span>tool.stub</span><strong>WOULD EXECUTE</strong><code>NO REAL SIDE EFFECT</code></li>");
