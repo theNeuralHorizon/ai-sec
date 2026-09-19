@@ -22,7 +22,9 @@ class WebAppTests(unittest.TestCase):
             with urlopen(f"{base}/healthz", timeout=2) as response:
                 self.assertEqual(json.load(response), {"status": "ok"})
             with urlopen(base, timeout=2) as response:
-                self.assertIn(b"Agent Security Control Plane", response.read())
+                body = response.read()
+            self.assertIn(b"Aegis", body)
+            self.assertIn(b"Context gateway", body)
         finally:
             server.shutdown()
             server.server_close()

@@ -57,11 +57,16 @@ def run_baseline() -> dict[str, Any]:
     return {
         "scenario": "baseline",
         "protection_enabled": False,
+        "mandate": _mandate(),
+        "source_url": "https://fixtures.local/hidden-css-injection.html",
         "context": {
             "risk_score": None,
             "findings": [],
+            "evidence": [],
+            "quarantined": [],
             "evidence_count": None,
             "quarantined_count": 0,
+            "source_trust": None,
             "decision": None,
         },
         "proposed_action": {
@@ -139,11 +144,16 @@ def _result(name, envelope, context_decision, action, action_decision, run) -> d
     return {
         "scenario": name,
         "protection_enabled": True,
+        "mandate": run.mandate,
+        "source_url": envelope.requested_url,
         "context": {
             "risk_score": envelope.risk_score,
             "findings": envelope.findings,
+            "evidence": envelope.evidence,
+            "quarantined": envelope.quarantined,
             "evidence_count": len(envelope.evidence),
             "quarantined_count": len(envelope.quarantined),
+            "source_trust": envelope.source_trust,
             "decision": context_decision,
         },
         "proposed_action": action,

@@ -3,50 +3,123 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Aegis — Agent Security Control Plane</title>
+    <title>Aegis Control Plane</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
-    <main>
-      <header>
-        <div class="eyebrow">AGENT SECURITY CONTROL PLANE</div>
-        <h1>Aegis</h1>
-        <p class="lede">Inspect what enters. Control what executes. Contain what gets compromised.</p>
+    <div class="shell">
+      <header class="masthead">
+        <div>
+          <p class="eyebrow">Agent security control plane</p>
+          <h1>Aegis</h1>
+          <p class="lede">
+            The same agent runs the same task four ways. Watch where the attack stops —
+            and which layer stops it.
+          </p>
+        </div>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch colour theme">
+          <span aria-hidden="true">◑</span> Theme
+        </button>
       </header>
 
-      <section class="controls" aria-label="Demo controls">
-        <button data-scenario="baseline">1. Protection off</button>
-        <button data-scenario="caught">2. Gateway catches attack</button>
-        <button data-scenario="bypass">3. Detector bypass</button>
-        <button data-scenario="clean">Clean control</button>
+      <nav class="scenarios" aria-label="Scenario">
+        <button type="button" data-scenario="baseline">
+          <span class="s-name">Protection off</span>
+          <span class="s-note">What happens with no control plane</span>
+        </button>
+        <button type="button" data-scenario="caught">
+          <span class="s-name">Gateway catches it</span>
+          <span class="s-note">Hidden instruction found and quarantined</span>
+        </button>
+        <button type="button" data-scenario="bypass">
+          <span class="s-name">Detector bypassed</span>
+          <span class="s-note">Nothing detected — blocked anyway</span>
+        </button>
+        <button type="button" data-scenario="clean">
+          <span class="s-name">Clean control</span>
+          <span class="s-note">Benign page, task completes</span>
+        </button>
+      </nav>
+
+      <section class="verdict" id="verdict" aria-live="polite">
+        <p class="v-label" id="verdict-label">Select a scenario</p>
+        <p class="v-line" id="verdict-line">Each run uses the same mandate and the same tools.</p>
       </section>
 
-      <section id="status" class="status" aria-live="polite">Select a scenario to begin.</section>
-
-      <section class="grid" aria-label="Security decision trace">
-        <article>
-          <div class="step">01 · CONTEXT</div>
-          <h2>Secure Context Gateway</h2>
-          <dl id="context"></dl>
-        </article>
-        <article>
-          <div class="step">02 · ACTION</div>
-          <h2>Deterministic Policy</h2>
-          <dl id="policy"></dl>
-        </article>
-        <article>
-          <div class="step">03 · RESPONSE</div>
-          <h2>Agent EDR</h2>
-          <dl id="edr"></dl>
-        </article>
+      <section class="mandate" aria-label="Task mandate">
+        <div class="m-item">
+          <span class="m-key">Task</span>
+          <span class="m-val" id="m-purpose">—</span>
+        </div>
+        <div class="m-item">
+          <span class="m-key">Source read</span>
+          <span class="m-val mono" id="m-source">—</span>
+        </div>
+        <div class="m-item">
+          <span class="m-key">May use</span>
+          <span class="m-val mono" id="m-allowed">—</span>
+        </div>
+        <div class="m-item">
+          <span class="m-key">Clearance</span>
+          <span class="m-val mono" id="m-clearance">—</span>
+        </div>
       </section>
 
-      <section class="timeline">
-        <div class="step">CAUSAL TRACE</div>
-        <ol id="timeline"><li>No events yet.</li></ol>
-      </section>
-    </main>
+      <ol class="pipeline" aria-label="Enforcement pipeline">
+        <li class="stage" id="stage-context">
+          <div class="st-head">
+            <span class="st-idx">01</span>
+            <h2>Context gateway</h2>
+            <span class="chip" id="context-chip">—</span>
+          </div>
+          <p class="st-ask">Does this content look hostile?</p>
+          <dl class="rows" id="context-rows"></dl>
+        </li>
+        <li class="stage" id="stage-policy">
+          <div class="st-head">
+            <span class="st-idx">02</span>
+            <h2>Deterministic policy</h2>
+            <span class="chip" id="policy-chip">—</span>
+          </div>
+          <p class="st-ask">Is this action allowed, whatever the model thinks?</p>
+          <dl class="rows" id="policy-rows"></dl>
+        </li>
+        <li class="stage" id="stage-edr">
+          <div class="st-head">
+            <span class="st-idx">03</span>
+            <h2>Agent EDR</h2>
+            <span class="chip" id="edr-chip">—</span>
+          </div>
+          <p class="st-ask">Is the whole session behaving like a compromise?</p>
+          <dl class="rows" id="edr-rows"></dl>
+        </li>
+      </ol>
+
+      <div class="detail">
+        <section class="panel" aria-label="Intercepted content">
+          <div class="p-head">
+            <h2>What the agent read</h2>
+            <span class="p-note" id="evidence-note">—</span>
+          </div>
+          <div id="segments" class="segments"></div>
+        </section>
+
+        <section class="panel" aria-label="Causal trace">
+          <div class="p-head">
+            <h2>Causal trace</h2>
+            <span class="p-note" id="trace-note">—</span>
+          </div>
+          <ol class="trace" id="trace"></ol>
+        </section>
+      </div>
+
+      <footer class="foot">
+        <p>
+          Every action shown is a proposal evaluated by policy. The prototype sends no mail,
+          reads no real records and contacts no external system.
+        </p>
+      </footer>
+    </div>
     <script src="/app.js"></script>
   </body>
 </html>
-
