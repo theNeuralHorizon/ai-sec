@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 
-DEFAULT_MODEL = "marx161-cmd/phi35-mini-disinhibited-abliterated-3.8B"
+DEFAULT_MODEL = "bartowski/Phi-3.5-mini-instruct-GGUF:Q4_K_M"
 
 
 @dataclass(frozen=True, slots=True)

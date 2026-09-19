@@ -2,7 +2,7 @@
 
 > Inspect what enters. Control what executes. Contain what gets compromised.
 
-Aegis is a local agent-security control plane. This branch provides a complete synthetic supply-chain demo for **Northstar Freight**: a deliberately permissive 3.8B (4B-class) abliterated-model route is treated as untrusted, while Aegis independently limits scope, tools, role permissions, data movement, and session behavior.
+Aegis is a local agent-security control plane. This branch provides a complete synthetic supply-chain demo for **Northstar Freight**: a 3.8B (4B-class) Q4 model route is treated as untrusted, while Aegis independently limits scope, tools, role permissions, data movement, and session behavior.
 
 ## What the demo proves
 
@@ -14,7 +14,25 @@ Aegis is a local agent-security control plane. This branch provides a complete s
 - An EDR trace showing identity binding, scope decision, model proposal, tool-policy decision, and synthetic result.
 - A transparent six-case alignment benchmark measuring prompt-to-plan alignment, expected outcome alignment, workflow drift, and unsafe-request refusal.
 
-The configured model profile is [`marx161-cmd/phi35-mini-disinhibited-abliterated-3.8B`](https://huggingface.co/marx161-cmd/phi35-mini-disinhibited-abliterated-3.8B), which is 3.8B parameters—close to the requested 4B class. The checked-in demo uses a deterministic local planner because no local model runtime is installed in this workspace; it clearly labels that mode in the dashboard. To use an installed OpenAI-compatible local endpoint such as LM Studio or llama.cpp, set `AEGIS_LOCAL_MODEL_ENDPOINT` to its loopback `/v1/chat/completions` address and optionally `AEGIS_LOCAL_MODEL_NAME`. The model is asked for a short plan only—Aegis chooses/authorizes capabilities and every tool remains synthetic.
+The exact abliterated checkpoint selected initially has no Q4 GGUF release, so the runnable profile is [`bartowski/Phi-3.5-mini-instruct-GGUF:Q4_K_M`](https://huggingface.co/bartowski/Phi-3.5-mini-instruct-GGUF), a 2.39 GB quantized Phi-3.5 Mini model. The model is asked for a short plan only—Aegis chooses/authorizes capabilities and every tool remains synthetic.
+
+### Start the live Q4 model route
+
+After the Q4 file is downloaded, open two PowerShell terminals in the repository root:
+
+```powershell
+$env:PYTHONPATH='src'
+python -m aegis.local_gguf_server --model 'C:\Users\athar\AegisLocalModels\phi35-mini-q4\Phi-3.5-mini-instruct-Q4_K_M.gguf'
+```
+
+```powershell
+$env:PYTHONPATH='src'
+$env:AEGIS_LOCAL_MODEL_ENDPOINT='http://127.0.0.1:8081/v1/chat/completions'
+$env:AEGIS_LOCAL_MODEL_NAME='bartowski/Phi-3.5-mini-instruct-GGUF:Q4_K_M'
+python -m aegis.webapp
+```
+
+The UI remains available while the model downloads; it switches from deterministic fallback to `local model endpoint` in the “Model proposal” card when this route is running.
 
 ## Run it
 

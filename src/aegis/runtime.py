@@ -22,7 +22,7 @@ from .scope import MultiLayerScopeGuard, ScopeVerdict
 MODEL_PROFILE = {
     "model_id": DEFAULT_MODEL,
     "parameter_class": "3.8B (4B class)",
-    "mode": "deterministic local simulation",
+    "mode": "Q4_K_M local model when the loopback endpoint is configured; deterministic fallback otherwise",
     "boundary": "The model never receives direct tool credentials; Aegis policy authorizes every tool proposal.",
 }
 
