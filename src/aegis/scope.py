@@ -39,7 +39,10 @@ class LightweightScopeClassifier:
     _injection = re.compile(r"\b(ignore|override|reveal)\b.{0,45}\b(instruction|policy|prompt|guardrail)\b", re.I)
     _exfiltration = re.compile(r"\b(send|email|upload|export|post|share)\b.{0,80}\b(manifest|customer|contact|credential|secret|data|file)\b", re.I)
     _delete = re.compile(r"\b(delete|erase|wipe|remove)\b", re.I)
-    _shipment = re.compile(r"\b(shipment|container|eta|delay|nf-\d{4})\b", re.I)
+    _shipment = re.compile(
+        r"\b(shipment|container|eta|delay|arrival|arrive|arrives|arrived|delivery|delivered|nf-\d{4})\b",
+        re.I,
+    )
     _documents = re.compile(r"\b(file|document|playbook|contract|brief|policy|report|search|summari[sz])\b", re.I)
     _notify = re.compile(r"\b(notify|update|tell)\b.{0,50}\b(customer|client)\b|\bcustomer\b.{0,50}\b(notify|update)\b", re.I)
 

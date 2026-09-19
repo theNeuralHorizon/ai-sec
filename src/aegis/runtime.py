@@ -86,7 +86,8 @@ class SupplyChainRuntime:
     @staticmethod
     def _model_proposal(run_id: str, prompt: str, tool_name: str, user: DemoUser, approval_granted: bool) -> ToolRequest:
         if tool_name == "shipment.lookup":
-            reference = (re.search(r"\bNF-\d{4}\b", prompt, re.I) or ["NF-2048"])[0].upper()
+            match = re.search(r"\bNF-\d{4}\b", prompt, re.I)
+            reference = match.group(0).upper() if match else None
             return ToolRequest(run_id, tool_name, ActionClass.READ, {"reference": reference}, data_labels=frozenset({DataLabel.PII}), source_trust=TrustLabel.USER_REQUEST)
         if tool_name == "customer.notify":
             reference = (re.search(r"\bNF-\d{4}\b", prompt, re.I) or ["NF-2048"])[0].upper()
@@ -99,7 +100,14 @@ class SupplyChainRuntime:
     @staticmethod
     def _invoke_synthetic_tool(user: DemoUser, request: ToolRequest) -> dict:
         if request.tool_name == "shipment.lookup":
-            record = SHIPMENTS.get(request.arguments["reference"], {"reference": request.arguments["reference"], "status": "No synthetic shipment found"})
+            reference = request.arguments["reference"]
+            if not reference:
+                return {
+                    "tool": request.tool_name,
+                    "summary": "I can check the arrival, but need a Northstar shipment reference such as NF-2048.",
+                    "data": {"status": "reference required"},
+                }
+            record = SHIPMENTS.get(reference, {"reference": reference, "status": "No synthetic shipment found"})
             return {"tool": request.tool_name, "summary": f"{record['reference']}: {record['status']}", "data": record}
         if request.tool_name == "company.files.search":
             terms = set(re.findall(r"[a-z]{4,}", request.arguments["query"].lower()))

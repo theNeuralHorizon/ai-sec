@@ -68,6 +68,28 @@ body {
 }
 
 #tab-console, #tab-scenarios { display: flex; flex-direction: column; gap: 20px; }
+
+.tabs {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 10px 0;
+  background: color-mix(in srgb, var(--ground) 92%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.tabs button { display: inline-flex; flex-direction: column; align-items: flex-start; }
+.tabs button small { color: var(--ink-faint); font-size: .68rem; font-weight: 500; }
+.tabs button.active small { color: var(--ink-dim); }
+
+.mode-note {
+  margin: 0;
+  padding: 10px 13px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink-dim);
+  font-size: .84rem;
+}
 .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 

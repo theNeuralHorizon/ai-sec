@@ -26,12 +26,17 @@
       </header>
 
       <nav class="tabs" aria-label="View">
-        <button type="button" data-tab="console" class="active">Live console</button>
-        <button type="button" data-tab="scenarios">Attack scenarios</button>
+        <button type="button" data-tab="console" class="active">
+          <span>Live console</span><small>your prompt → local Q4 model → Aegis</small>
+        </button>
+        <button type="button" data-tab="scenarios">
+          <span>Fixed attack replays</span><small>four saved fixtures; no live model call</small>
+        </button>
       </nav>
 
       <!-- ============ LIVE CONSOLE ============ -->
       <section id="tab-console">
+        <p class="mode-note"><strong>Live mode.</strong> Your request is sent to the local Q4 model for a plan; Aegis independently scopes, authorizes, and simulates the result.</p>
         <section class="org" aria-label="Team and permissions">
           <div class="p-head">
             <h2>Who is asking</h2>
@@ -116,6 +121,7 @@
 
       <!-- ============ ATTACK SCENARIOS ============ -->
       <section id="tab-scenarios" hidden>
+        <p class="mode-note"><strong>Replay mode.</strong> These are fixed indirect-prompt-injection fixtures that prove the gateway, policy, and EDR layers. They never use your prompt or call the local model.</p>
         <nav class="scenarios" aria-label="Scenario">
           <button type="button" data-scenario="baseline">
             <span class="s-name">Protection off</span>

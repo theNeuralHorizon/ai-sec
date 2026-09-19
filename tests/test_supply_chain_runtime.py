@@ -14,6 +14,12 @@ class SupplyChainRuntimeTests(unittest.TestCase):
         self.assertEqual(result["proposal"]["tool_name"], "shipment.lookup")
         self.assertEqual(result["tool_result"]["data"]["reference"], "NF-2048")
 
+    def test_arrival_question_without_reference_is_accepted_and_requests_reference(self) -> None:
+        result = self.runtime.run(user_id="sahil.support", prompt="Tell me when the potatoes arrive")
+        self.assertEqual(result["final_status"], "COMPLETED")
+        self.assertEqual(result["proposal"]["tool_name"], "shipment.lookup")
+        self.assertEqual(result["tool_result"]["data"]["status"], "reference required")
+
     def test_procurement_role_cannot_lookup_shipment(self) -> None:
         result = self.runtime.run(user_id="kshitij.procurement", prompt="Look up shipment NF-2048")
         self.assertEqual(result["final_status"], "BLOCKED")
