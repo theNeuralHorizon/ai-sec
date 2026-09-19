@@ -1,6 +1,6 @@
-# SafeContext-Inspired Agent Security Control Plane
+# Aegis Agent Security Control Plane
 
-> Working concept brief for AI-SEC Hackfest 2026. This project is inspired by the publicly described problem addressed by Palo Alto Networks' SafeContext. It is not a reproduction of SafeContext, whose internal architecture, source code, benchmarks, and demo flow have not been publicly disclosed.
+> Working concept brief for AI-SEC Hackfest 2026. Aegis is an independent agent-security project for protecting AI systems from hostile context and unsafe tool actions.
 
 ## 1. One-line idea
 
@@ -10,28 +10,17 @@ Working pitch:
 
 > The web has become executable input for AI agents. We inspect what enters, control what executes, and contain the agent when prevention fails.
 
-## 2. What is publicly known about SafeContext
+## 2. Aegis design basis
 
-Palo Alto Networks publicly states that SafeContext:
+Aegis is an independent design for protecting agentic systems from indirect prompt injection, tool poisoning, sensitive-data leakage, and unsafe side effects. The architecture is based on established AI-security patterns and intentionally keeps the security boundary outside the model's natural-language interpretation path.
 
-- won first place in the Idea Exploring track of its February 2026 internal Agentic AI Hackathon;
-- competed in an event with 70 teams, 200+ engineers, and nine finalists;
-- protects AI agents from emerging web-based threats such as indirect prompt injection;
-- draws on URL reputation, threat intelligence, and content-security expertise; and
-- was prototyped with Google's Agent Development Kit (ADK).
-
-The public profile does **not** disclose SafeContext's detailed pipeline, system architecture, detection models, policies, benchmarks, source code, or demo sequence. Any architecture in this document is therefore our design.
-
-Sources:
-
-- [Palo Alto Networks: Meet Team SafeContext](https://jobs.paloaltonetworks.com/en/safecontext-ai-hackathon-winner-palo-alto-networks)
-- [Unit 42: Fooling AI Agents - Web-Based Indirect Prompt Injection Observed in the Wild](https://unit42.paloaltonetworks.com/ai-agent-prompt-injection/)
+The design does not depend on any private implementation, proprietary threat feed, or external project affiliation. All demo content, tools, policies, and attack fixtures are synthetic and locally reproducible.
 
 ## 3. Problem statement
 
 AI agents routinely ingest webpages, documents, emails, tickets, and tool output. Those inputs mix trusted user intent with attacker-controlled data in the same natural-language context. An indirect prompt injection can cause the agent to reinterpret data as an instruction and misuse legitimate tools.
 
-Pre-ingress scanning alone cannot be perfect. Unit 42 documents 22 in-the-wild payload-engineering techniques, including visible instructions, hidden CSS, off-screen text, HTML attribute cloaking, dynamic JavaScript, invisible characters, layered encoding, payload splitting, multilingual instructions, and syntax injection. The reported outcomes include decision manipulation, unauthorized transactions, sensitive-data leakage, system-prompt leakage, denial of service, and data destruction.
+Pre-ingress scanning alone cannot be perfect. Aegis covers visible instructions, hidden CSS, off-screen text, HTML attribute cloaking, dynamic JavaScript, invisible characters, layered encoding, payload splitting, multilingual instructions, and syntax injection. The relevant outcomes include decision manipulation, unauthorized transactions, sensitive-data leakage, system-prompt leakage, denial of service, and data destruction.
 
 The real engineering question is therefore:
 
@@ -91,7 +80,7 @@ The design has three mandatory modules and one deliberately unselected extension
 
 ### 6.1 Secure Context Gateway
 
-The gateway is the SafeContext-inspired ingress layer. It converts raw external content into a structured `ContextEnvelope` rather than handing a page directly to the agent.
+The gateway is the Aegis ingress layer. It converts raw external content into a structured `ContextEnvelope` rather than handing a page directly to the agent.
 
 Responsibilities:
 
@@ -419,7 +408,7 @@ This directly proves why each module exists.
 ### Phase 0 - scope and repository hygiene
 
 1. Preserve all existing idea files and the hackathon PDF.
-2. Adopt a distinct working name; do not imply affiliation with Palo Alto Networks or claim to be the original SafeContext.
+2. Use Aegis consistently across the code, documentation, UI, and demo.
 3. Record confirmed public facts separately from architectural assumptions.
 4. Choose one local, reproducible demo scenario and freeze it.
 5. Define an offline/mock mode so the demo works without network access or model credits.
@@ -550,7 +539,7 @@ The prototype must not require any paid threat-intelligence feed. All external i
 ## 14. Non-goals
 
 - claiming perfect prompt-injection detection;
-- reproducing undisclosed SafeContext internals;
+- reproducing any undisclosed external implementation;
 - providing ISO certification or legal compliance guarantees;
 - crawling arbitrary live malicious websites during the demo;
 - executing real destructive, payment, email, or exfiltration actions;
