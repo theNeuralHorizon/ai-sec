@@ -16,6 +16,11 @@ SECRET = re.compile(
     re.I,
 )
 PHONE = re.compile(r"(?<!\d)(?:\+?\d[\d .()-]{8,}\d)(?!\d)")
+CONFIDENTIAL_TERMS = re.compile(
+    r"\b(?:crm\s+extract|customer\s+(?:data|record|list|database)s?|client\s+list|"
+    r"payroll|salary\s+band|account\s+statement|internal\s+only|confidential)\b",
+    re.I,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,6 +58,11 @@ class DLPGuard:
         ignored = frozenset(ignored_keys)
         if isinstance(value, str):
             labels.update(self.scan_text(value).labels)
+            # Business-sensitivity wording classifies data the agent is *moving*, so it
+            # is applied at egress only. The same words in an inbound public webpage
+            # describe data, they are not data, and labelling them would false-positive.
+            if CONFIDENTIAL_TERMS.search(value):
+                labels.add(DataLabel.CONFIDENTIAL)
         elif isinstance(value, Mapping):
             for key, item in value.items():
                 if str(key) not in ignored:

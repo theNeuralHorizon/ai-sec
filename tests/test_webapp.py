@@ -10,7 +10,7 @@ class WebAppTests(unittest.TestCase):
     def test_scenario_payload_is_json_serializable(self) -> None:
         payload = scenario_payload("bypass")
         encoded = json.dumps(payload)
-        self.assertIn("POL-CAP-001", encoded)
+        self.assertIn("POL-DATA-001", encoded)
         self.assertIn("CONTAINED", encoded)
 
     def test_health_and_dashboard_are_served(self) -> None:
