@@ -16,7 +16,15 @@ from .models import ContextEnvelope, ContextSegment, DataLabel, Finding, TrustLa
 
 ZERO_WIDTH = re.compile(r"[\u200b-\u200f\u202a-\u202e\u2060\ufeff]")
 INSTRUCTION_PATTERNS = (
-    re.compile(r"\bignore\s+(?:all\s+|any\s+)?(?:previous|prior|user|system)\s+instructions?\b", re.I),
+    # Qualifiers repeat in real payloads ("ignore previous *user* instructions"), so the
+    # qualifier group has to be repeatable; a single slot silently misses the commonest phrasing.
+    re.compile(
+        r"\b(?:ignore|disregard|forget|override)\s+(?:all\s+|any\s+)?"
+        r"(?:the\s+|your\s+|these\s+|those\s+|my\s+)?"
+        r"(?:(?:previous|prior|preceding|above|earlier|user|system|developer)\s+){1,3}"
+        r"instructions?\b",
+        re.I,
+    ),
     re.compile(r"\b(?:new|updated)\s+(?:system|developer)\s+(?:message|instructions?)\b", re.I),
     re.compile(r"\b(?:do not|never)\s+(?:tell|show|reveal)\s+(?:the\s+)?user\b", re.I),
     re.compile(r"\b(?:act|respond|behave)\s+as\b", re.I),

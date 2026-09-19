@@ -38,11 +38,15 @@ class SessionMonitor:
         self._denied_action_count = 0
 
     def observe_context(self, envelope: ContextEnvelope, decision: PolicyDecision) -> None:
-        self._external_context_seen = envelope.source_trust in {
+        # Accumulate, never overwrite: reading a clean page after a hostile one does not
+        # untaint the session, and an attacker would otherwise just append a benign fetch.
+        self._external_context_seen = self._external_context_seen or envelope.source_trust in {
             TrustLabel.EXTERNAL_EVIDENCE,
             TrustLabel.SUSPICIOUS_EXTERNAL,
         }
-        self._suspicious_context_seen = bool(envelope.findings or envelope.quarantined)
+        self._suspicious_context_seen = self._suspicious_context_seen or bool(
+            envelope.findings or envelope.quarantined
+        )
         self.events.append(
             SecurityEvent(
                 run_id=self.run_id,
@@ -105,6 +109,17 @@ class SessionMonitor:
                     "quarantine_session",
                 )
             )
+        elif side_effect and self._suspicious_context_seen:
+            self._advance(SessionState.SUSPICIOUS)
+            self.alerts.append(
+                EDRAlert(
+                    "EDR-FLOW-002",
+                    "medium",
+                    "A side effect was attempted after suspicious context was admitted",
+                    (decision.rule_id,),
+                    "require_human_review",
+                )
+            )
         elif self._denied_action_count >= 2:
             self._advance(SessionState.CONTAINED)
             self.alerts.append(
@@ -123,17 +138,29 @@ class SessionMonitor:
         self._advance(SessionState.REVIEWED)
 
     def _advance(self, target: SessionState) -> None:
-        rank = {
-            SessionState.NORMAL: 0,
-            SessionState.SUSPICIOUS: 1,
-            SessionState.CONTAINED: 2,
-            SessionState.REVIEWED: 3,
-        }
-        if rank[target] <= rank[self.state]:
+        """Walk the state machine one step at a time, recording every transition.
+
+        Stepping matters for the investigation timeline: jumping straight to CONTAINED
+        loses the fact that the session passed through SUSPICIOUS and why.
+        """
+        order = (
+            SessionState.NORMAL,
+            SessionState.SUSPICIOUS,
+            SessionState.CONTAINED,
+            SessionState.REVIEWED,
+        )
+        current = order.index(self.state)
+        goal = order.index(target)
+        if goal <= current:
             return
-        if self.state is SessionState.NORMAL and target in {SessionState.CONTAINED, SessionState.REVIEWED}:
-            self.state = SessionState.SUSPICIOUS
-        if self.state is SessionState.SUSPICIOUS and target is SessionState.REVIEWED:
-            self.state = SessionState.CONTAINED
-        self.state = target
+        for rank in range(current + 1, goal + 1):
+            previous, self.state = self.state, order[rank]
+            self.events.append(
+                SecurityEvent(
+                    run_id=self.run_id,
+                    event_type="session.transition",
+                    outcome=self.state,
+                    details={"from": previous},
+                )
+            )
 
