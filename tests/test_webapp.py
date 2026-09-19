@@ -1,6 +1,7 @@
 import json
 import threading
 import unittest
+from pathlib import Path
 from urllib.request import urlopen
 
 from aegis.webapp import create_server, scenario_payload
@@ -25,10 +26,19 @@ class WebAppTests(unittest.TestCase):
                 body = response.read()
             self.assertIn(b"Aegis", body)
             self.assertIn(b"Northstar Freight", body)
+            with urlopen(f"{base}/styles.css", timeout=2) as response:
+                css = response.read().decode("utf-8")
+            self.assertIn("#tab-console[hidden], #tab-scenarios[hidden]", css)
+            self.assertIn("display: none", css)
         finally:
             server.shutdown()
             server.server_close()
             thread.join(timeout=2)
+
+
+    def test_hidden_tab_rule_is_in_styles(self) -> None:
+        css = (Path(__file__).resolve().parents[1] / "ui" / "styles.css").read_text(encoding="utf-8")
+        self.assertIn("#tab-console[hidden], #tab-scenarios[hidden] { display: none; }", css)
 
 
 if __name__ == "__main__":

@@ -83,6 +83,7 @@ All email, data-access, and destructive actions in the prototype are synthetic p
 
 ## Documents
 
+- [Judge pitch deck](docs/pitch/Aegis_Judge_Pitch_Deck.pptx)
 - [Northstar Freight Policy Rubric](POLICY_RUBRIC.md)
 - [Aegis Hackathon Prototype Design](AEGIS_HACKATHON_PROTOTYPE_DESIGN.md)
 - [Aegis Agent Security Control Plane](AEGIS_EDR_IDEA.md)
