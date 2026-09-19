@@ -60,6 +60,24 @@ class ContextGatewayTests(unittest.TestCase):
                 )
                 self.assertTrue(envelope.quarantined, phrase)
 
+    def test_ordinary_product_copy_is_not_flagged(self) -> None:
+        # "can act as a desktop replacement" and "send your data to the cloud" are the
+        # shapes the instruction and exfiltration patterns are most likely to overfit to.
+        envelope = self.analyze("benign-marketing-copy.html")
+        self.assertFalse(envelope.findings)
+        self.assertFalse(envelope.quarantined)
+
+    def test_hidden_accessibility_content_is_not_flagged(self) -> None:
+        envelope = self.analyze("benign-accessibility.html")
+        self.assertFalse(envelope.findings)
+        self.assertFalse(envelope.quarantined)
+
+    def test_comment_and_attribute_payloads_are_detected(self) -> None:
+        envelope = self.analyze("comment-attribute-injection.html")
+        locations = {segment.location for segment in envelope.quarantined}
+        self.assertTrue(any("comment" in location for location in locations), locations)
+        self.assertTrue(any("@data-agent-note" in location for location in locations), locations)
+
     def test_non_http_source_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
             self.gateway.analyze_html(source_id="bad", url="file:///etc/passwd", html="text")

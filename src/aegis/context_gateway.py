@@ -27,11 +27,21 @@ INSTRUCTION_PATTERNS = (
     ),
     re.compile(r"\b(?:new|updated)\s+(?:system|developer)\s+(?:message|instructions?)\b", re.I),
     re.compile(r"\b(?:do not|never)\s+(?:tell|show|reveal)\s+(?:the\s+)?user\b", re.I),
-    re.compile(r"\b(?:act|respond|behave)\s+as\b", re.I),
+    # Must name an authority role. A bare "act as" matches ordinary product copy
+    # ("can act as a desktop replacement"), which is the shape this detector reads all day.
+    re.compile(
+        r"\b(?:act|respond|behave)\s+as\s+(?:a\s+|an\s+|the\s+)?"
+        r"(?:system|admin|administrator|developer|assistant|agent|operator|root|superuser)\b",
+        re.I,
+    ),
 )
+# The object has to be qualified. A bare "data" or "customer" turns "send your data to
+# the cloud" into a critical exfiltration finding on a normal marketing page.
 EXFILTRATION_PATTERN = re.compile(
-    r"\b(?:send|email|upload|post|forward|exfiltrat\w*)\b.{0,100}"
-    r"\b(?:secret|token|credential|history|customer|private|system prompt|data)\b",
+    r"\b(?:send|email|upload|post|forward|transmit|exfiltrat\w*)\b.{0,100}"
+    r"\b(?:secrets?|tokens?|credentials?|passwords?|api\s*keys?|browsing\s+history|"
+    r"system\s+prompt|(?:customer|client|user|personal|private|confidential|crm)\s+"
+    r"(?:data|records?|information|list|extract))\b",
     re.I | re.S,
 )
 BASE64_PATTERN = re.compile(r"\b[A-Za-z0-9+/]{24,}={0,2}\b")

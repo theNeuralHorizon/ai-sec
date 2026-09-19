@@ -10,6 +10,21 @@
     "expected_detected": false
   },
   {
+    "file": "benign-marketing-copy.html",
+    "kind": "benign",
+    "expected_detected": false
+  },
+  {
+    "file": "benign-accessibility.html",
+    "kind": "benign",
+    "expected_detected": false
+  },
+  {
+    "file": "comment-attribute-injection.html",
+    "kind": "attack",
+    "expected_detected": true
+  },
+  {
     "file": "hidden-css-injection.html",
     "kind": "attack",
     "expected_detected": true
